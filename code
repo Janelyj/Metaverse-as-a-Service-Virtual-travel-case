@@ -1,0 +1,105 @@
+%%
+% Running the program, get four values:
+% 1. Uniform rendering power allocation strategy
+% 2. Random rendering power allocation strategy
+% 3. Optimial power Allocation (GT) - bound
+% 4. Optimial Allocation base on our Predictions
+
+clc;clear;
+A1 = readmatrix("./gd.txt"); % The ground truth
+A2 = readmatrix("./predall.txt"); % Prediction results
+A3 = readmatrix("./experiment.txt");% Randomly generated sparse interactions
+% A3 = readmatrix('experiment2.txt');% Randomly generated sparse interactions
+A3 = A3+1; % Start with 1
+
+FINAL=zeros(30,4);
+Attention = -1.*ones(30,59);
+%% Generate attention matrix
+for u = 1:2:30
+usernum = u;% change to try different users (1~30)
+
+Atemp = [];
+for k = 1: length(A3(usernum,:))
+    if A3(usernum,k)>=0
+        Atemp(k) = A3(usernum,k);
+    end
+end
+
+uoal = [];
+uoalpre = [];
+cixu = [];
+
+for k = 1:length(Atemp)
+    uoal(k) = A1(usernum,Atemp(k)); % User attention to different objects (GT)
+    uoalpre(k) = A2(usernum,Atemp(k)); % Predicted user attention for different objects
+    Attention(usernum,k) = uoal(k);
+end
+
+numO = length(Atemp); % Total number of objects in one virtual tour
+
+%% Initialize rendering power
+% PthR = 15; % Minimum rendering power per object
+% PkR = 1000; % The total rendering power of one virtual metaverse service assigned to user k
+
+PthR = 15;
+PkR = numO*20;
+
+if PthR.*length(Atemp)>PkR
+    disp('not availiable');
+    finish
+end
+
+PnkR = zeros(1,length(uoal)); % Initialize the power assigned to each object
+
+%% Optimial Allocation GT
+PnkR = zeros(1,length(uoal));
+uxing = sum(uoal)/PkR;
+PnkR = uoal./uxing;
+j = 1;
+t1 = [];t2 = [];
+while min(PnkR)<PthR 
+% When the condition that the minimum rendering power 
+% must be greater than PthR is not satisfied
+    [a,b] = min(PnkR); 
+    % a records the minimum renderning power,
+    % b records the corresponding position
+    t1(j) = b;
+    t2(j) = uoal(b);
+    uxing = (sum(uoal)-sum(t2))/(PkR - PthR*j); %Solve for the new u*
+    PnkR = uoal./uxing; 
+    for q = 1:j
+    PnkR(t1(q)) = PthR;
+    end
+    j = j+1;
+%     sum(PnkR)
+end
+FINAL(u,4) = sum(uoal.*log(PnkR./PthR));
+
+% sum(PnkR)
+
+end
+y=[];
+for x=15:30
+ [a,b] = min(PnkR); 
+    % a records the minimum renderning power,
+    % b records the corresponding position
+    t1(x) = b;
+    t2(x) = uoal(b);
+    uxing = (sum(uoal)-sum(t2))/(PkR - PthR*j); %Solve for the new u*
+    PnkR = uoal./uxing; 
+    for q = 1:x
+    PnkR(t1(q)) = PthR;
+    end
+    y1=sum(uoal.*log(PnkR./PthR));
+    y=[y y1];
+end
+
+x=15:30;
+j=1;
+DR=10:42;
+[x,y]=meshgrid(x,DR);
+z=((DR-10)/(42-10)*y(j)
+j=j+1;
+figure
+mesh(x,DR,z)
+
